@@ -37,10 +37,13 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(scales)
+library(httr)
 
-dt_earning_field <- read_excel("x78130.xlsx",
-                               sheet = 12,
-                               range = "B44:H63")
+url <- "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/main/data/x78130.xlsx"
+
+GET(url, write_disk(tf <- tempfile(fileext = ".xlsx")))
+
+dt_earning_field <- read_excel(tf, sheet = 12, range = "B44:H63")
 
 glimpse(dt_earning_field)
 
@@ -109,7 +112,7 @@ earn_field <- ggplot(
 ) +
   scale_shape_manual(values = c(16, 17, 15, 18)) +
   geom_point(size = 3, position = position_jitter(height = 0.8, width = 0)) +
-  scale_color_viridis_d(option = "C", end = 0.9) +  # 色盲友善配色
+  scale_color_viridis_d(option = "C", end = 0.9) +  
   labs(
     title = "Relative Earnings by Field of Study across Countries",
     subtitle = "25-64 year-old full-time full-year workers, percentage difference from average earnings",
@@ -185,7 +188,11 @@ While STEM and business graduates consistently earn wage premiums across countri
 
 ```{r,fig.width=10, fig.height=10}
 
-grads_raw <- read_excel("graduates_by_field.xlsx", skip = 7)
+url_grads <- "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/main/data/graduates_by_field.xlsx"
+
+GET(url_grads, write_disk(tmpf <- tempfile(fileext = ".xlsx")))
+
+grads_raw <- read_excel(tmpf, skip = 7)
 
 grads_re <- grads_raw %>%
   mutate(
