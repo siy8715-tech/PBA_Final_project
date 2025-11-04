@@ -3,10 +3,10 @@ title: "First visualization"
 author: "Group 1 - Gresa and Zoe"
 format:
   html:
-    toc : TRUE
-    toc_depth : 2
-    toc_float : TRUE
-
+    self-contained: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
 ---
 
 ```{r setup, include=FALSE}
