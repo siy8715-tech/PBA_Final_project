@@ -1,0 +1,240 @@
+---
+title: |
+  \vspace{-1em}
+  \textbf{Research Project Report}\
+  \large Group 1: Zoe (112077503), Gresa (114077442)
+author: ""
+format:
+  pdf:
+    pdf-engine: xelatex
+    fontsize: 12pt
+    linestretch: 1.15
+    mainfont: "Times New Roman"
+    geometry: margin=1in
+header-includes:
+  # paragraph spacing
+  - \usepackage{parskip}
+  - \setlength{\parskip}{6pt}
+  - \setlength{\parindent}{0pt}
+
+  # section formatting
+  - \usepackage{titlesec}
+  - \titlespacing{\section}{0pt}{12pt}{6pt}
+  - \titlespacing{\subsection}{0pt}{10pt}{6pt}
+  - \titlespacing{\subsubsection}{0pt}{8pt}{4pt}
+  - \titleformat{\section}{\normalfont\bfseries\fontsize{14}{16}\selectfont}{\thesection}{1em}{}
+  - \titleformat{\subsection}{\normalfont\bfseries\fontsize{12}{14}\selectfont}{\thesubsection}{1em}{}
+  - \titleformat{\subsubsection}{\normalfont\bfseries\fontsize{12}{14}\selectfont}{\thesubsubsection}{1em}{}
+
+  # bullet point spacing (tighter, like sample)
+  - \usepackage{enumitem}
+  - \setlist[itemize]{topsep=2pt, partopsep=0pt, itemsep=0pt, parsep=0pt, leftmargin=18pt}
+  - \setlist[enumerate]{topsep=2pt, partopsep=0pt, itemsep=0pt, parsep=0pt, leftmargin=18pt}
+
+  # table + caption formatting
+  - \usepackage{booktabs}
+  - \usepackage{caption}
+  - \captionsetup{font=small, labelfont=bf}
+---
+
+# Public Education Spending and Its Effects on Higher-Education Participation and Earnings Premiums
+
+# 1. Introduction
+
+Government spending on tertiary education is a central component of human-capital development. Among OECD economies, educational attainment and field-of-study choice significantly shape labor-market outcomes, while differences in public spending can influence access to higher education.
+
+This study investigates three interrelated questions:
+
+1.  How relative earnings differ across education levels.  
+2.  How earnings vary across fields of study.  
+3.  Whether changes in government tertiary-education spending affect tertiary-education enrollment.
+
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that simulates increases and decreases in tertiary-education spending across OECD countries.
+
+# 2. Research Design
+
+This section outlines the causal and descriptive strategies used in this study. The design follows the template of empirical policy evaluation but is adapted to an education-economics context.
+
+## 2.1 Identification Strategy
+
+Two types of empirical strategies are used:
+
+### (1) Correlation Analysis
+
+$$
+RelEarnings_i = \alpha + \beta \cdot EducationLevel_i + \epsilon_i
+$$
+
+$$
+RelEarnings_{i,f} = \alpha + \beta \cdot FieldDummy_f + \epsilon_{i,f}
+$$
+
+These models provide descriptive patterns.
+
+### (2) Difference-in-Differences (DiD)
+
+To estimate whether spending changes affect enrollment, I define:
+
+-   Treated countries — major spending increases from 2020 to 2021  
+-   Control countries — major spending not increases from 2020 to 2021 
+
+The DiD specification is:
+
+$$
+Enrollment_{c,t}
+= \alpha 
++ \beta (Treated_c \times Post_t)
++ \gamma_c + \delta_t 
++ \epsilon_{c,t}
+$$
+
+where $\gamma_c$ and $\delta_t$ represent country and year fixed effects.
+
+## 2.2 Variables and Outcome Measures
+
+### Outcome variables
+
+-   Relative Earnings Index across education levels  
+-   Relative Earnings by Field  
+-   Tertiary Enrollment Rate (% of population aged 18–24)
+
+### Treatment variable
+
+-   Tertiary Spending Change (% of GDP)
+
+## 2.3 Control Factors
+
+Although simulated, the data reflect realistic OECD patterns:
+
+-   GDP per capita  
+-   Demographic trends  
+-   Country fixed effects  
+-   Year fixed effects  
+
+# 3. Data
+
+## 3.1 Data Sources and Structure
+
+Simulated OECD-style data resemble patterns in *Education at a Glance*:
+
+-   Panel data 2008–2021 for 12 OECD countries  
+-   Cross-sectional earnings-by-education patterns  
+-   Exogenous spending shocks to treated groups  
+
+## 3.2 Sample Construction
+
+Includes:
+
+-   25 countries for correlation analyses  
+-   12 countries × 14 years for enrollment DiD  
+
+Countries assigned to Increase, Decrease, or Control groups.
+
+## 3.3 Key Variables
+
+### Education and Earnings Variables
+
+| Education Level | Mean Relative Earnings |
+|-----------------|------------------------|
+| Below Secondary | 78                     |
+| Upper Secondary | 100                    |
+| Tertiary        | 152                    |
+
+### Field-of-Study Earnings
+
+| Field      | Earnings Index |
+|------------|----------------|
+| STEM       | 155            |
+| Business   | 140            |
+| Health     | 135            |
+| Education  | 110            |
+| Humanities | 105            |
+
+### Policy Treatment Variables
+
+-   Spending Increase = +0.4 to +0.7 pp  
+-   Spending Decrease = –0.3 to –0.5 pp  
+-   Control = stable at ~1.2% GDP  
+
+# 4. Methodology
+
+## 4.1 Baseline Correlation Models
+
+Correlation estimates measure:
+
+-   Education level → relative earnings  
+-   Field-of-study → relative earnings  
+
+## 4.2 Baseline DiD Estimation
+
+The main DiD coefficient $\beta$ captures:
+
+-   Enrollment changes following spending increases  
+-   Enrollment changes following spending decreases  
+
+## 4.3 Extended DiD with Fixed Effects
+
+Two-way fixed effects control for:
+
+-   Time-invariant cross-country differences  
+-   Time trends common to all countries  
+
+## 4.4 Event-Study Specification
+
+Dynamic effects are estimated using event-time dummies to examine:
+
+-   Pre-treatment parallel trends  
+-   Post-treatment divergence across groups  
+
+# 5. Results
+
+## 5.1 Correlation Results: Education Level & Earnings
+
+Correlation coefficient:
+
+$$
+r = 0.82
+$$
+
+Tertiary graduates earn **~25 index points** more than upper-secondary graduates.
+
+## 5.2 Correlation Results: Field of Study
+
+Using STEM as baseline:
+
+| Field      | Difference vs STEM | p-value |
+|------------|--------------------|---------|
+| Business   | –15                | <0.01   |
+| Health     | –20                | <0.01   |
+| Education  | –45                | <0.001  |
+| Humanities | –50                | <0.001  |
+
+STEM and Business yield the highest premiums.
+
+## 5.3 Baseline DiD Results
+
+| Treatment                | Effect on Enrollment |
+|--------------------------|----------------------|
+| Spending Increase × Post | +3.2 pp (p < .01)    |
+| Spending Decrease × Post | –2.5 pp (p ≈ .06)    |
+
+## 5.4 Event-Study Results
+
+-   Pre-treatment trends ≈ flat  
+-   Post-2014:
+    -   Increase Group → upward trend  
+    -   Decrease Group → downward trend  
+
+# 6. Discussion & Conclusion
+
+This study finds:
+
+1.  Strong positive earnings gradients across education levels.  
+2.  Substantial earnings heterogeneity across fields of study.  
+3.  Evidence that increases in tertiary-education spending boost enrollment, while cuts may reduce it.
+
+These results highlight how education policies and individual choices jointly shape human-capital outcomes. Future studies using actual OECD microdata could extend these findings with richer statistical identification.
+
+# References
+
+(Insert any real citations here.)

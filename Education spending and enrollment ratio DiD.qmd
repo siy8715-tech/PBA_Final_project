@@ -1,0 +1,187 @@
+---
+title: "Effect of 2020→2021 Spending Increase on Enrollment Change"
+author: "Group 1 – Zoe (112077503), Gresa (114077442)"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(fixest)
+
+# 1. Load data ------------------------------------------------------------
+
+enroll_raw <- read.csv(
+  "https://ourworldindata.org/grapher/primary-secondary-enrollment-completion-rates.csv?v=1&csvType=full&useColumnShortNames=true"
+)
+
+spend_raw  <- read.csv(
+  "https://ourworldindata.org/grapher/education-spending.csv?v=1&csvType=full&useColumnShortNames=true&spending_type=per_student&level=tertiary"
+)
+
+# OECD ISO3 codes
+oecd_iso3 <- c(
+  "AUS","AUT","BEL","CAN","CHE","CHL","CZE","DEU","DNK","ESP","EST",
+  "FIN","FRA","GBR","GRC","HUN","IRL","ISL","ISR","ITA","JPN","KOR",
+  "LTU","LUX","LVA","MEX","NLD","NOR","NZL","POL","PRT","SVK","SVN",
+  "SWE","TUR","USA"
+)
+
+# 2. Select variables (using your exact column names) ---------------------
+
+enroll <- enroll_raw %>%
+  transmute(
+    entity = Entity,
+    code   = Code,
+    year   = Year,
+    enroll_ratio =
+      gross_enrolment_ratio_for_tertiary_education__both_sexes__pct__ger_5t8
+  )
+
+spend <- spend_raw %>%
+  transmute(
+    entity = Entity,
+    code   = Code,
+    year   = Year,
+    spend_tertiary =
+      initial_government_funding_per_tertiary_student__constant_pppdollar__xunit_pppconst_5t8_fsgov_ffntr
+  )
+
+# 3. Build panel for multiple years (for DiD) -----------------------------
+
+panel_all <- enroll %>%
+  filter(code %in% oecd_iso3) %>%
+  inner_join(
+    spend %>% filter(code %in% oecd_iso3),
+    by = c("entity","code","year")
+  ) %>%
+  filter(year >= 2010, year <= 2023) %>%
+  arrange(code, year)
+
+# 4. Compute 2021–2020 differences and treatment -------------------------
+
+panel_20_21 <- panel_all %>%
+  filter(year %in% c(2020, 2021)) %>%
+  select(code, entity, year, enroll_ratio, spend_tertiary) %>%
+  pivot_wider(
+    names_from  = year,
+    values_from = c(enroll_ratio, spend_tertiary),
+    names_glue  = "{.value}_{year}"
+  ) %>%
+  mutate(
+    enroll_change = enroll_ratio_2021 - enroll_ratio_2020,
+    spend_change  = spend_tertiary_2021 - spend_tertiary_2020,
+    treated       = ifelse(spend_change > 0, 1, 0)
+  )
+
+# 5. Summary + bar chart: treated vs control + ATE -----------------------
+
+summary_table <- panel_20_21 %>%
+  group_by(treated) %>%
+  summarise(
+    avg_enroll_change = mean(enroll_change, na.rm = TRUE),
+    avg_spend_change  = mean(spend_change, na.rm = TRUE),
+    n_countries       = n(),
+    .groups = "drop"
+  )
+
+print(summary_table)
+
+# Average Treatment Effect (ATE): difference in mean enrollment change
+ATE <- summary_table$avg_enroll_change[summary_table$treated == 1] -
+       summary_table$avg_enroll_change[summary_table$treated == 0]
+ATE
+
+# Bar chart of average enrollment change by group
+ggplot(summary_table,
+       aes(x = factor(treated),
+           y = avg_enroll_change,
+           fill = factor(treated))) +
+  geom_col(width = 0.6) +
+  scale_fill_manual(values = c("0" = "gray70", "1" = "gray40"),
+                    labels = c("0" = "Control", "1" = "Treated")) +
+  labs(
+    x = "Group",
+    y = "Average Enrollment Change (2021 − 2020, percentage points)",
+    title = "Enrollment Change (2021−2020): Treated vs Control (OECD)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# 6. 4-Quadrant Scatter: ΔSpend vs ΔEnroll with regression & CI ----------
+
+p_quad <- ggplot(panel_20_21,
+       aes(x = spend_change, y = enroll_change)) +
+  # Regression line + 95% CI
+  geom_smooth(method = "lm", se = TRUE,
+              color = "black", fill = "gray80", linewidth = 0.8) +
+  # Points
+  geom_point(aes(color = factor(treated)), size = 3) +
+  # Labels
+  geom_text(aes(label = code), vjust = -0.6, size = 3) +
+  # Quadrant lines
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+  scale_color_manual(
+    values = c("0" = "gray50", "1" = "black"),
+    labels = c("0" = "Control", "1" = "Treated"),
+    name   = "Spending Change"
+  ) +
+  labs(
+    x = "Change in Spending per Tertiary Student (2021 − 2020, PPP$)",
+    y = "Change in Enrollment Ratio (2021 − 2020, percentage points)",
+    title = "OECD: Spending Change vs Enrollment Change (2021−2020)",
+    subtitle = "Four-Quadrant Policy Matrix with 95% Regression Confidence Band"
+  ) +
+  theme_minimal()
+
+p_quad
+
+# 7. Regression using 2021–2020 differences -------------------------------
+
+# (a) Simple OLS: does higher spending change predict higher enrollment change?
+reg_diff <- lm(enroll_change ~ spend_change, data = panel_20_21)
+summary(reg_diff)
+
+# (b) Simple treatment regression: treated vs control (difference in means regression)
+reg_treat <- lm(enroll_change ~ treated, data = panel_20_21)
+summary(reg_treat)
+
+# Optional t-test for treated vs control
+t_test_res <- t.test(enroll_change ~ treated, data = panel_20_21)
+t_test_res
+
+# 8. Full DiD model (panel, multi-year) -----------------------------------
+
+# Define treatment at country level based on 2021−2020 spend_change
+treatment_def <- panel_20_21 %>%
+  select(code, entity, spend_change, treated)
+
+# Merge treatment into full panel and define post dummy for 2021+
+panel_did <- panel_all %>%
+  left_join(treatment_def %>% select(code, treated), by = "code") %>%
+  filter(!is.na(treated)) %>%
+  mutate(
+    post = ifelse(year >= 2021, 1, 0),
+    treat_post = treated * post
+  )
+
+# DiD model using enrollment LEVEL as outcome:
+# enroll_ratio_ct = α + β (treated_c * post_t) + γ_c + δ_t + ε_ct
+did_model <- feols(
+  enroll_ratio ~ treated * post | code + year,
+  data    = panel_did,
+  cluster = "code"
+)
+
+summary(did_model)
+
+# Extract DiD estimate for your report
+beta_hat <- coef(did_model)["treated:post"]
+se_hat   <- se(did_model)["treated:post"]
+ci_hat   <- confint(did_model, "treated:post")
+
+beta_hat
+se_hat
+ci_hat
+```
+
