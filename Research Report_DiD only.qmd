@@ -41,19 +41,31 @@ header-includes:
 
 # 1. Introduction
 
-Government spending on tertiary education is a central component of human-capital development. Among OECD economies, educational attainment and field-of-study choice significantly shape labor-market outcomes, while differences in public spending can influence access to higher education.
+Government spending on tertiary education is a central component of human-capital development.
+Among OECD economies and educational attainment choice significantly shape
+labor-market outcomes, while differences in public spending can influence access to higher education.
+At the same time, governments differ widely in how much they invest in higher education
+and how accessible tertiary programs are to students.
+
+In recent years, especially following the disruptions caused by COVID-19 pandemic several countries
+increased their spending on tertiary education in an effort to stabilize enrollment, reduce learning
+losses, and expand access. These policy variations provide an opportunity to explore how government
+spending relates to tertiary enrollment and, more broadly, how educational investment
+influences long-term labor market returns.
 
 This study investigates three interrelated questions:
 
-1.  How relative earnings differ across education levels.  
-2.  How earnings vary across fields of study.  
-3.  Whether changes in government tertiary-education spending affect tertiary-education enrollment.
+1. How relative earnings differ across education levels.
+2. Whether changes in government tertiary-education spending affect tertiary-education enrollment.
 
-To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that simulates increases and decreases in tertiary-education spending across OECD countries.
 
 # 2. Research Design
 
-This study examines whether post-COVID increases in government tertiary-education spending contributed to changes in tertiary enrollment across countries. The research design follows standard approaches in empirical policy evaluation and leverages cross-country variation in the magnitude of fiscal responses to the pandemic. The central idea is that governments differed substantially in how they adjusted per-student tertiary-education spending after COVID-19, providing quasi-experimental variation for identifying changes in enrollment outcomes.
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD)
+design that simulates increases and decreases in tertiary-education spending across OECD countries.
+By combining descriptive analysis with regression models, the report explores both the labor
+market value of tertiary education and the broader policy factors that influence who enters and
+completes higher education.
 
 ## 2.1 Identification Strategy
 
@@ -111,7 +123,7 @@ The analytic sample includes countries with non-missing observations for tertiar
 
 ---
 
-# 4. Methodology
+# 4. Methodology {#sec-methodology}
 
 This section presents the empirical models used to estimate the relationship between government spending and tertiary enrollment. Two main approaches are implemented: a Difference-in-Differences model with fixed effects and a continuous first-difference regression.
 
@@ -181,44 +193,217 @@ This model captures marginal associations across countries and is interpreted de
 
 Together, these models provide a coherent framework for evaluating whether post-COVID education-spending responses translated into changes in tertiary participation.
 
-# 5. Results
+# 5. Results {#sec-results}
 
-## 5.1 Correlation Results: Education Level & Earnings
+This section presents descriptive evidence on changes in tertiary enrollment and government spending, followed by the main empirical results using the Difference-in-Differences and continuous first-difference approaches. The presentation follows a structure common in applied policy-evaluation research: descriptive patterns first, then model-based results.
 
-Correlation coefficient:
+```{r setup-results, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(fixest)
+library(broom)
+
+# 1. Load OECD data ---------------------------------------------------
+enroll_raw <- read.csv(
+  "https://ourworldindata.org/grapher/primary-secondary-enrollment-completion-rates.csv?v=1&csvType=full&useColumnShortNames=true"
+)
+
+spend_raw <- read.csv(
+  "https://ourworldindata.org/grapher/education-spending.csv?v=1&csvType=full&useColumnShortNames=true&spending_type=per_student&level=tertiary"
+)
+
+oecd_iso3 <- c(
+  "AUS","AUT","BEL","CAN","CHE","CHL","CZE","DEU","DNK","ESP","EST",
+  "FIN","FRA","GBR","GRC","HUN","IRL","ISL","ISR","ITA","JPN","KOR",
+  "LTU","LUX","LVA","MEX","NLD","NOR","NZL","POL","PRT","SVK","SVN",
+  "SWE","TUR","USA"
+)
+
+# 2. Select variables (year as integer) -------------------------------
+enroll <- enroll_raw %>%
+  transmute(
+    entity = Entity,
+    code   = Code,
+    year   = as.integer(Year),
+    enroll_ratio =
+      gross_enrolment_ratio_for_tertiary_education__both_sexes__pct__ger_5t8
+  )
+
+spend <- spend_raw %>%
+  transmute(
+    entity = Entity,
+    code   = Code,
+    year   = as.integer(Year),
+    spend_tertiary =
+      initial_government_funding_per_tertiary_student__constant_pppdollar__xunit_pppconst_5t8_fsgov_ffntr
+  )
+
+# 3. Build panel ------------------------------------------------------
+panel_all <- enroll %>%
+  inner_join(spend, by = c("entity","code","year")) %>%
+  filter(code %in% oecd_iso3, year >= 2010, year <= 2023) %>%
+  arrange(code, year)
+
+# --- 3b. Compute pretrend (2010–2019 enrollment slope for each country) -----
+
+pretrend_df <- panel_all %>%
+  filter(year >= 2010, year <= 2019) %>%   # choose stable pre-COVID window
+  group_by(code) %>%
+  do({
+    mod <- lm(enroll_ratio ~ year, data = .)
+    tibble(pretrend = coef(mod)[2])        # slope = yearly change before 2020
+  }) %>%
+  ungroup()
+
+# 4. 2020→2021 differences -------------------------------------------
+
+
+panel_20_21 <- panel_all %>%
+  filter(year %in% c(2020, 2021)) %>%
+  select(code, entity, year, enroll_ratio, spend_tertiary) %>%
+  pivot_wider(
+    names_from  = year,
+    values_from = c(enroll_ratio, spend_tertiary),
+    names_glue  = "{.value}_{year}"
+  ) %>%
+  mutate(
+    enroll_change = enroll_ratio_2021 - enroll_ratio_2020,
+    spend_change  = spend_tertiary_2021 - spend_tertiary_2020,
+    treated       = ifelse(spend_change > 0, 1, 0)
+  )
+
+panel_20_21 <- panel_20_21 %>%
+  left_join(pretrend_df, by = "code")
+
+# 5. DiD panel with treatment -----------------------------------------
+panel_did <- panel_all %>%
+  left_join(panel_20_21 %>% distinct(code, treated), by = "code") %>%
+  filter(!is.na(treated)) %>%
+  mutate(
+    post = ifelse(year >= 2021, 1, 0)
+  )
+
+# 6. DiD model ---------------------------------------------------------
+did_model <- feols(
+  enroll_ratio ~ treated * post | code + year,
+  cluster = "code",
+  data = panel_did
+)
+
+# 7. Event-study model -------------------------------------------------
+panel_did <- panel_did %>%
+  mutate(rel_year = year - 2021)
+
+event_study_model <- feols(
+  enroll_ratio ~ i(rel_year, treated, ref = -1) | code + year,
+  cluster = "code",
+  data = panel_did
+)
+
+# 8. First-difference model -------------------------------------------
+fd_model <- lm(enroll_change ~ spend_change + pretrend, data = panel_20_21)
+
+```
+
+
+```{r fd-summary, echo=FALSE, message=FALSE, warning=FALSE,tbl.cap="Summary of First-Difference Regression with Pretrend Control."}
+
+fd_tidy <- tidy(fd_model, conf.int = TRUE)
+
+knitr::kable(
+  fd_tidy,
+  digits = 3,
+  caption = "Summary of First-Difference Regression with Pretrend Control"
+)
+```
+
+## 5.1 Descriptive Patterns
+
+To motivate the analysis, Figure @fig-trends displays average tertiary-enrollment trajectories for high-response and low-response countries, where high-response countries are those with above-median increases in per-student tertiary-education spending between 2020 and 2021.
+
+Prior to 2021, the two groups follow broadly similar trends, showing no visible pre-existing divergence. After 2021, enrollment levels remain volatile but do not exhibit systematic differences across groups. This descriptive evidence is consistent with the identifying assumption that pre-COVID trends were comparable across high- and low-response countries.
+
+```{r fig-trends, echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Average tertiary enrollment for high-response and low-response OECD countries."}
+
+panel_all %>%
+  left_join(panel_20_21 %>% distinct(code, treated), by = "code") %>%
+  filter(!is.na(treated)) %>%  # drop NA treatment to avoid grey line
+  group_by(year, treated) %>%
+  summarise(
+    avg_enroll = mean(enroll_ratio, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = year, y = avg_enroll, color = factor(treated))) +
+  geom_line(size = 1.1) +
+  scale_x_continuous(breaks = 2010:2023, labels = 2010:2023) +
+  labs(
+    x     = "Year",
+    y     = "Average Tertiary Enrollment Ratio",
+    color = "High-Response",
+    title = "Enrollment Trends by Spending-Response Group"
+  ) +
+  theme_minimal()
+```
+
+## 5.2 Difference-in-Differences Estimates
+
+Table @tbl-did-model reports the baseline Difference-in-Differences estimates described in Section @sec-methodology. The coefficient on the interaction term  
+$Treated_c \times Post_t$  
+captures the differential change in tertiary-enrollment levels for high-response countries relative to low-response countries after 2021.
+
+The estimated effect is small and statistically insignificant, indicating **no evidence that countries with larger post-COVID spending increases experienced faster short-run enrollment growth**. This finding aligns with the descriptive patterns in Section 5.1.
+
+```{r tbl-did-model, echo=FALSE, message=FALSE, warning=FALSE,tbl.cap="Difference-in-Differences estimates for 2021+ vs pre-2021 enrollment levels."}
+
+knitr::kable(
+  tidy(did_model, conf.int = TRUE),
+  digits = 3
+)
+```
+
+## 5.3 Event-Study Dynamics
+
+To examine dynamic treatment effects and assess the parallel-trends assumption more explicitly, Figure @fig-event-study plots the coefficients from the event-time specification introduced in Section @sec-methodology.
+
+Pre-treatment coefficients fluctuate around zero with wide confidence intervals, providing no indication of systematic divergence prior to 2021. Post-treatment coefficients also remain close to zero and statistically indistinguishable from pre-treatment values.
+
+Taken together, the event-study results reinforce the conclusion that **spending increases in 2021 did not meaningfully shift enrollment trajectories**.
+
+```{r fig-event-study, echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Event-study coefficients relative to 2021 (reference year = 2020)."}
+
+iplot(
+  event_study_model,
+  xlab = "Years Relative to 2021",
+  ylab = "Effect on Enrollment Ratio",
+  main = "Event Study: Post-COVID Spending Response"
+)
+```
+
+## 5.4 Continuous First-Difference Estimates
+
+The first-difference model estimated is:
 
 $$
-r = 0.82
+\Delta Enrollment_c = \alpha + \beta\,\Delta Spending_c + \theta\,Pretrend_c + \epsilon_c.
 $$
 
-Tertiary graduates earn **~25 index points** more than upper-secondary graduates.
+Here, $\Delta Enrollment_c$ is the change in tertiary enrollment between 2020 and 2021, and $\Delta Spending_c$ is the corresponding change in per-student tertiary-education spending.
 
-## 5.2 Correlation Results: Field of Study
+The estimated coefficient on spending change is **negative and marginally significant at the 10% level**. Rather than suggesting that increased spending reduces enrollment, this pattern is most plausibly interpreted as **reverse causality**: countries experiencing larger enrollment declines in 2021 appear to have responded by increasing tertiary-education spending more aggressively.
 
-Using STEM as baseline:
+This interpretation is consistent with the absence of positive effects in the DiD and event-study analyses.
 
-| Field      | Difference vs STEM | p-value |
-|------------|--------------------|---------|
-| Business   | –15                | <0.01   |
-| Health     | –20                | <0.01   |
-| Education  | –45                | <0.001  |
-| Humanities | –50                | <0.001  |
+```{r tbl-fd-model, echo=FALSE, message=FALSE, warning=FALSE,tbl.cap="Regression of 2021–2020 enrollment changes on spending changes."}
 
-STEM and Business yield the highest premiums.
+knitr::kable(
+  tidy(fd_model, conf.int = TRUE),
+  digits = 3)
+```
 
-## 5.3 Baseline DiD Results
+## 5.5 Summary of Findings
 
-| Treatment                | Effect on Enrollment |
-|--------------------------|----------------------|
-| Spending Increase × Post | +3.2 pp (p < .01)    |
-| Spending Decrease × Post | –2.5 pp (p ≈ .06)    |
+Across all empirical approaches—descriptive comparisons, Difference-in-Differences estimates, event-study dynamics, and continuous first-difference regressions—the results consistently show **no evidence that short-run increases in tertiary-education spending led to higher enrollment rates in the immediate post-COVID period**.
 
-## 5.4 Event-Study Results
-
--   Pre-treatment trends ≈ flat  
--   Post-2014:
-    -   Increase Group → upward trend  
-    -   Decrease Group → downward trend  
+Any association between spending increases and enrollment declines appears driven by **policy responses to worsening conditions**, rather than causal effects of spending on enrollment.
 
 # 6. Discussion & Conclusion
 
