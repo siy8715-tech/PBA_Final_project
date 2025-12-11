@@ -185,3 +185,78 @@ se_hat
 ci_hat
 ```
 
+```{r}
+
+## Define treatment based on spending response intensity (ex ante grouping)
+
+treatment_group <- panel_20_21 %>%
+  select(code, spend_change) %>%
+  mutate(
+    treated = ifelse(
+      spend_change >= median(spend_change, na.rm = TRUE), 1, 0
+    )
+  ) %>%
+  select(code, treated)
+
+## Merge treatment into full panel and create event time
+
+panel_event <- panel_all %>%
+  left_join(treatment_group, by = "code") %>%
+  filter(!is.na(treated)) %>%
+  mutate(
+    event_time = year - 2021
+  )
+
+## Event-study DiD with country and year fixed effects
+
+event_study_model <- feols(
+  enroll_ratio ~ i(event_time, treated, ref = -1) | code + year,
+  data    = panel_event,
+  cluster = "code"
+)
+
+summary(event_study_model)
+
+
+## Plot event-study coefficients
+
+iplot(
+  event_study_model,
+  xlab = "Years Relative to 2021",
+  ylab = "Effect on Tertiary Enrollment Ratio",
+  main = "Event Study: Enrollment Response to Post-COVID Spending Increase"
+)
+
+```
+
+
+```{r}
+
+## Compute long-run pre-COVID enrollment trend (2010–2019)
+
+pretrend <- panel_all %>%
+  filter(year >= 2010, year <= 2019) %>%
+  group_by(code) %>%
+  summarise(
+    enroll_trend_pre = enroll_ratio[year == 2019] -
+                       enroll_ratio[year == 2010],
+    .groups = "drop"
+  )
+
+## Merge long-run trend into 2020–2021 first-difference data
+
+fd_data <- panel_20_21 %>%
+  left_join(pretrend, by = "code") %>%
+  filter(!is.na(enroll_trend_pre))
+
+## First-difference regression with long-run trend control
+
+fd_model <- lm(
+  enroll_change ~ spend_change + enroll_trend_pre,
+  data = fd_data
+)
+
+summary(fd_model)
+
+```
+
