@@ -256,7 +256,6 @@ pretrend_df <- panel_all %>%
 
 # 4. 2020→2021 differences -------------------------------------------
 
-
 panel_20_21 <- panel_all %>%
   filter(year %in% c(2020, 2021)) %>%
   select(code, entity, year, enroll_ratio, spend_tertiary) %>%
@@ -267,11 +266,16 @@ panel_20_21 <- panel_all %>%
   ) %>%
   mutate(
     enroll_change = enroll_ratio_2021 - enroll_ratio_2020,
-    spend_change  = spend_tertiary_2021 - spend_tertiary_2020,
-    treated       = ifelse(spend_change > 0, 1, 0)
+    spend_change  = spend_tertiary_2021 - spend_tertiary_2020
   )
 
+# median-based treatment assignment
+median_spend_change <- median(panel_20_21$spend_change, na.rm = TRUE)
+
 panel_20_21 <- panel_20_21 %>%
+  mutate(
+    treated = ifelse(spend_change > median_spend_change, 1, 0)
+  ) %>%
   left_join(pretrend_df, by = "code")
 
 # 5. DiD panel with treatment -----------------------------------------
@@ -301,7 +305,6 @@ event_study_model <- feols(
 
 # 8. First-difference model -------------------------------------------
 fd_model <- lm(enroll_change ~ spend_change + pretrend, data = panel_20_21)
-
 ```
 
 
@@ -399,11 +402,12 @@ knitr::kable(
   digits = 3)
 ```
 
-## 5.5 Summary of Findings
+## **5.5 Summary of Findings (Concise Version)**
 
-Across all empirical approaches—descriptive comparisons, Difference-in-Differences estimates, event-study dynamics, and continuous first-difference regressions—the results consistently show **no evidence that short-run increases in tertiary-education spending led to higher enrollment rates in the immediate post-COVID period**.
+Across all empirical strategies—descriptive comparisons, Difference-in-Differences, event-study analysis, and first-difference regression—the evidence shows **no short-run impact of increased tertiary-education spending on enrollment rates** following the COVID-19 shock. High-response countries did not exhibit distinct post-2021 enrollment patterns, and the DiD and event-study coefficients remain small and statistically insignificant. The negative association in the first-difference model is best interpreted as **reverse causality**, reflecting governments’ responses to declining enrollment rather than causal effects of higher spending.
 
-Any association between spending increases and enrollment declines appears driven by **policy responses to worsening conditions**, rather than causal effects of spending on enrollment.
+Overall, the findings indicate that **post-COVID spending increases did not produce immediate gains in tertiary-education participation**, with observed correlations driven by reactive policy adjustments rather than changes in student behavior.
+
 
 # 6. Discussion & Conclusion
 
