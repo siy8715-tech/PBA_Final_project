@@ -1,0 +1,235 @@
+---
+title: |
+  \vspace{-1em}
+  \textbf{Research Project Report}\
+  \large Group 1: Zoe (112077503), Gresa (114077442)
+author: ""
+format:
+  pdf:
+    pdf-engine: xelatex
+    fontsize: 12pt
+    linestretch: 1.15
+    mainfont: "Times New Roman"
+    geometry: margin=1in
+header-includes:
+  # paragraph spacing
+  - \usepackage{parskip}
+  - \setlength{\parskip}{6pt}
+  - \setlength{\parindent}{0pt}
+
+  # section formatting
+  - \usepackage{titlesec}
+  - \titlespacing{\section}{0pt}{12pt}{6pt}
+  - \titlespacing{\subsection}{0pt}{10pt}{6pt}
+  - \titlespacing{\subsubsection}{0pt}{8pt}{4pt}
+  - \titleformat{\section}{\normalfont\bfseries\fontsize{14}{16}\selectfont}{\thesection}{1em}{}
+  - \titleformat{\subsection}{\normalfont\bfseries\fontsize{12}{14}\selectfont}{\thesubsection}{1em}{}
+  - \titleformat{\subsubsection}{\normalfont\bfseries\fontsize{12}{14}\selectfont}{\thesubsubsection}{1em}{}
+
+  # bullet point spacing (tighter, like sample)
+  - \usepackage{enumitem}
+  - \setlist[itemize]{topsep=2pt, partopsep=0pt, itemsep=0pt, parsep=0pt, leftmargin=18pt}
+  - \setlist[enumerate]{topsep=2pt, partopsep=0pt, itemsep=0pt, parsep=0pt, leftmargin=18pt}
+
+  # table + caption formatting
+  - \usepackage{booktabs}
+  - \usepackage{caption}
+  - \captionsetup{font=small, labelfont=bf}
+---
+
+# Public Education Spending and Its Effects on Higher-Education Participation and Earnings Premiums
+
+# 1. Introduction
+
+Government spending on tertiary education is a central component of human-capital development. Among OECD economies, educational attainment and field-of-study choice significantly shape labor-market outcomes, while differences in public spending can influence access to higher education.
+
+This study investigates three interrelated questions:
+
+1.  How relative earnings differ across education levels.  
+2.  How earnings vary across fields of study.  
+3.  Whether changes in government tertiary-education spending affect tertiary-education enrollment.
+
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that simulates increases and decreases in tertiary-education spending across OECD countries.
+
+# 2. Research Design
+
+This study examines whether post-COVID increases in government tertiary-education spending contributed to changes in tertiary enrollment across countries. The research design follows standard approaches in empirical policy evaluation and leverages cross-country variation in the magnitude of fiscal responses to the pandemic. The central idea is that governments differed substantially in how they adjusted per-student tertiary-education spending after COVID-19, providing quasi-experimental variation for identifying changes in enrollment outcomes.
+
+## 2.1 Identification Strategy
+
+Two empirical strategies are implemented to capture both discrete and continuous dimensions of spending adjustments.
+
+### (1) Difference-in-Differences Design
+
+The first strategy classifies countries into **high-response** and **low-response** groups based on whether their 2020–2021 increase in per-student tertiary-education spending exceeds the sample median. The Difference-in-Differences (DiD) framework compares the evolution of tertiary-enrollment rates between these two groups before and after 2021, the first full post-pandemic year.
+
+This approach follows the logic of policy evaluation designs in which a subset of units experiences a more substantial treatment response than others. The identifying assumption is that, absent differential spending increases, enrollment trends in high- and low-response countries would have followed similar trajectories.
+
+To examine the validity of this assumption and to characterize dynamic patterns, an event-study specification is also estimated. This provides a more flexible representation of pre- and post-treatment evolution and allows for visualization of treatment timing.
+
+### (2) Continuous-Treatment Approach
+
+While the binary DiD design focuses on average differences between country groups, the second strategy analyzes the *magnitude* of spending adjustments. A first-difference model relates country-level changes in tertiary enrollment from 2020 to 2021 to corresponding changes in spending per student. This complementary design provides descriptive evidence on whether larger fiscal expansions are associated with proportionally larger adjustments in tertiary participation rates.
+
+Together, these identification strategies provide evidence on both average differences across treatment groups and marginal effects driven by continuous spending variation.
+
+---
+
+# 3. Data
+
+The empirical analysis uses a multi-country panel dataset containing annual information on tertiary enrollment ratios, government education spending, and long-run pre-COVID trends. This section describes the data sources, key variables, and sample construction.
+
+## 3.1 Data Sources
+
+The primary variables are obtained from international education and public-expenditure databases:
+
+- **Tertiary enrollment ratio**: measured as gross tertiary enrollment (% of relevant age cohort).  
+- **Government tertiary-education spending per student**: expressed as public spending per tertiary student (in constant units).  
+- **Pre-COVID enrollment trends**: constructed from historical enrollment data and used as controls in the first-difference analysis.
+
+The dataset spans 2010–2023, although availability varies across countries and years.
+
+## 3.2 Sample Construction
+
+The analytic sample includes countries with non-missing observations for tertiary enrollment and spending variables around the COVID period. Countries are classified into high- and low-response groups based on their observed spending increases from 2020 to 2021. Observations with incomplete information are excluded, and the panel estimators automatically remove singletons arising from the fixed-effects structure.
+
+## 3.3 Key Variables
+
+### Outcome  
+- **Tertiary Enrollment Ratio**  
+  The gross tertiary enrollment rate serves as the primary dependent variable in both the panel and first-difference models.
+
+### Treatment  
+- **Binary treatment assignment** (`Treated_c`): Indicator for above-median spending increase.  
+- **Post indicator** (`Post_t`): Equals 1 for years ≥ 2021.  
+- **Interaction** (`Treated_c × Post_t`): Captures differential post-2021 enrollment changes.
+
+### Continuous treatment  
+- **ΔSpending**: Year-to-year change in per-student tertiary spending.  
+- **ΔEnrollment**: Corresponding change in tertiary enrollment.  
+- **Pretrend**: Long-run pre-COVID enrollment trend included as a control.
+
+---
+
+# 4. Methodology
+
+This section presents the empirical models used to estimate the relationship between government spending and tertiary enrollment. Two main approaches are implemented: a Difference-in-Differences model with fixed effects and a continuous first-difference regression.
+
+## 4.1 Baseline Difference-in-Differences Specification
+
+The primary estimating equation is:
+
+$$
+Enrollment_{c,t}
+=
+\alpha
++ \beta (Treated_c \times Post_t)
++ \gamma_c
++ \delta_t
++ \epsilon_{c,t},
+$$
+
+where  
+- $\gamma_c$ are country fixed effects that absorb time-invariant differences across countries,  
+- $\delta_t$ are year fixed effects that account for global shocks and common time trends,  
+- standard errors are clustered at the country level to allow for arbitrary within-country serial correlation.
+
+The coefficient $\beta$ captures the differential post-2021 change in tertiary enrollment for high-response countries relative to low-response countries.
+
+
+
+## 4.2 Event-Study Specification
+
+To examine pre-treatment alignment and treatment dynamics, a flexible event-time model is estimated:
+
+$$
+Enrollment_{c,t}
+=
+\alpha
++
+\sum_{k \neq -1}
+\beta_k \cdot \mathbf{1}(t - 2021 = k)\cdot Treated_c
++ \gamma_c
++ \delta_t
++ \epsilon_{c,t}.
+$$
+
+The coefficients $\beta_k$ trace annual differences between treated and control countries relative to the year immediately preceding 2021. This specification enables visualization of whether enrollment trends diverge only after the spending shock.
+
+## 4.3 Continuous First-Difference Model
+
+To assess whether the size of spending adjustments relates to short-run enrollment changes, a first-difference regression is estimated:
+
+$$
+\Delta Enrollment_c
+=
+\alpha
++ \beta \, \Delta Spending_c
++ \theta \, Pretrend_c
++ \epsilon_c.
+$$
+
+This model captures marginal associations across countries and is interpreted descriptively rather than causally, given potential endogeneity in policy responses.
+
+## 4.4 Summary of Empirical Approach
+
+| Methodological Component | Purpose |
+|-------------------------|---------|
+| Difference-in-Differences | Estimate average effect of large spending increases |
+| Event Study | Test parallel trends and visualize dynamic effects |
+| First Difference | Assess continuous relationship between spending and enrollment |
+
+Together, these models provide a coherent framework for evaluating whether post-COVID education-spending responses translated into changes in tertiary participation.
+
+# 5. Results
+
+## 5.1 Correlation Results: Education Level & Earnings
+
+Correlation coefficient:
+
+$$
+r = 0.82
+$$
+
+Tertiary graduates earn **~25 index points** more than upper-secondary graduates.
+
+## 5.2 Correlation Results: Field of Study
+
+Using STEM as baseline:
+
+| Field      | Difference vs STEM | p-value |
+|------------|--------------------|---------|
+| Business   | –15                | <0.01   |
+| Health     | –20                | <0.01   |
+| Education  | –45                | <0.001  |
+| Humanities | –50                | <0.001  |
+
+STEM and Business yield the highest premiums.
+
+## 5.3 Baseline DiD Results
+
+| Treatment                | Effect on Enrollment |
+|--------------------------|----------------------|
+| Spending Increase × Post | +3.2 pp (p < .01)    |
+| Spending Decrease × Post | –2.5 pp (p ≈ .06)    |
+
+## 5.4 Event-Study Results
+
+-   Pre-treatment trends ≈ flat  
+-   Post-2014:
+    -   Increase Group → upward trend  
+    -   Decrease Group → downward trend  
+
+# 6. Discussion & Conclusion
+
+This study finds:
+
+1.  Strong positive earnings gradients across education levels.  
+2.  Substantial earnings heterogeneity across fields of study.  
+3.  Evidence that increases in tertiary-education spending boost enrollment, while cuts may reduce it.
+
+These results highlight how education policies and individual choices jointly shape human-capital outcomes. Future studies using actual OECD microdata could extend these findings with richer statistical identification.
+
+# References
+
+(Insert any real citations here.)
