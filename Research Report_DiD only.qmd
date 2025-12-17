@@ -182,11 +182,36 @@ This model captures marginal associations across countries and is interpreted de
 
 ## 4.4 Summary of Empirical Approach
 
-| Methodological Component | Purpose |
-|-------------------------|---------|
-| Difference-in-Differences | Estimate average effect of large spending increases |
-| Event Study | Test parallel trends and visualize dynamic effects |
-| First Difference | Assess continuous relationship between spending and enrollment |
+
+```{r,echo=FALSE}
+
+approach_tbl <- data.frame(
+`Methodological Component` = c(
+"Difference-in-Differences",
+"Event Study",
+"First Difference"
+),
+Purpose = c(
+"Estimate average effect of large spending increases",
+"Test parallel trends and visualize dynamic effects",
+"Assess continuous relationship between spending and enrollment"
+),
+check.names = FALSE
+)
+
+knitr::kable(
+approach_tbl,
+format = "latex",
+booktabs = TRUE,
+caption = "Summary of empirical approach.",
+align = c("l", "l")
+) |>
+kableExtra::kable_styling(latex_options = "hold_position", full_width = FALSE) |>
+kableExtra::column_spec(1, width = "4.6cm") |>
+kableExtra::column_spec(2, width = "10.2cm")
+
+```
+
 
 Together, these models provide a coherent framework for evaluating whether post-COVID education-spending responses translated into changes in tertiary participation.
 
