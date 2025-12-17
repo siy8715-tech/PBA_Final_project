@@ -41,19 +41,14 @@ header-includes:
 
 # 1. Introduction
 
-Government spending on tertiary education is a central component of human-capital development.
-Among OECD economies and educational attainment choice significantly shape
-labor-market outcomes, while differences in public spending can influence access to higher education.
-At the same time, governments differ widely in how much they invest in higher education
-and how accessible tertiary programs are to students.
+Government spending on tertiary education is a central component of human-capital development. Across OECD economies, educational attainment decisions shape labor-market outcomes, while public investment can influence access to higher education and the capacity of tertiary institutions to deliver education at scale.
 
-In recent years, especially following the disruptions caused by COVID-19 pandemic several countries
-increased their spending on tertiary education in an effort to stabilize enrollment, reduce learning
-losses, and expand access. These policy variations provide an opportunity to explore how government
-spending relates to tertiary enrollment and, more broadly, how educational investment
-influences long-term labor market returns.
+The COVID-19 shock plausibly altered tertiary enrollment decisions because higher education is a discretionary choice and, relative to compulsory schooling, often relies more heavily on household spending and student-aid arrangements. In such settings, enrollment may become more sensitive to short-run income risk and liquidity constraints. Financing regimes that require substantial upfront payments at the point of enrollment may therefore be particularly vulnerable to enrollment shocks, whereas income-contingent loan systems—where students do not pay upfront—may be more resilient (OECD, 2021).
 
-This study investigates three interrelated questions:
+In the post-COVID period, countries also differed markedly in their public funding responses. OECD (2021) documents widespread adjustments in higher-education public budgets in 2020/2021 and highlights that expansions in student support—such as student grants/scholarships and student loans—were common elements of these responses. This cross-country heterogeneity in the intensity of public spending adjustments provides a useful setting to examine whether larger post-COVID spending responses are associated with different trajectories of tertiary enrollment.
+
+
+This study investigates two interrelated questions:
 
 1. How relative earnings differ across education levels.
 2. Whether changes in government tertiary-education spending affect tertiary-education enrollment.
@@ -61,11 +56,7 @@ This study investigates three interrelated questions:
 
 # 2. Research Design
 
-To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD)
-design that simulates increases and decreases in tertiary-education spending across OECD countries.
-By combining descriptive analysis with regression models, the report explores both the labor
-market value of tertiary education and the broader policy factors that influence who enters and
-completes higher education.
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits observed cross-country variation in post-COVID changes in per-student government spending on tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with larger post-2020 spending adjustments experienced differential post-2020 trajectories in tertiary enrolment relative to countries with smaller adjustments.
 
 ## 2.1 Identification Strategy
 
@@ -73,11 +64,14 @@ Two empirical strategies are implemented to capture both discrete and continuous
 
 ### (1) Difference-in-Differences Design
 
-The first strategy classifies countries into **high-response** and **low-response** groups based on whether their 2020–2021 increase in per-student tertiary-education spending exceeds the sample median. The Difference-in-Differences (DiD) framework compares the evolution of tertiary-enrollment rates between these two groups before and after 2021, the first full post-pandemic year.
+The first strategy classifies countries into **high-response** and **low-response** groups based on whether their 2020–2021 increase in per-student tertiary-education spending exceeds the sample median. The Difference-in-Differences (DiD) framework compares the evolution of tertiary-enrollment rates between these two groups before and after 2021, the first full year following the onset of the pandemic.
 
 This approach follows the logic of policy evaluation designs in which a subset of units experiences a more substantial treatment response than others. The identifying assumption is that, absent differential spending increases, enrollment trends in high- and low-response countries would have followed similar trajectories.
 
-To examine the validity of this assumption and to characterize dynamic patterns, an event-study specification is also estimated. This provides a more flexible representation of pre- and post-treatment evolution and allows for visualization of treatment timing.
+To examine the validity of the identifying assumption and to characterize dynamic patterns, an event-study specification is also estimated. This event-time framework provides a flexible representation of pre- and post-2021 differences and allows visualization of treatment dynamics, including whether any divergence emerges only after 2021.
+
+Importantly, this design does not assume that funding adjustments were mechanically caused by enrollment changes. Instead, it treats the 2020–2021 spending change as a heterogeneous funding-policy response across countries and estimates whether enrolment evolved differently in countries with larger versus smaller adjustments, conditional on fixed effects and pre-trend diagnostics.
+ation of pre- and post-treatment evolution and allows for visualization of treatment timing.
 
 ### (2) Continuous-Treatment Approach
 
@@ -92,6 +86,8 @@ Together, these identification strategies provide evidence on both average diffe
 The empirical analysis uses a multi-country panel dataset containing annual information on tertiary enrollment ratios, government education spending, and long-run pre-COVID trends. This section describes the data sources, key variables, and sample construction.
 
 ## 3.1 Data Sources
+
+In practice, the empirical dataset is constructed from publicly available series accessed via Our World in Data (OWID) Grapher downloads for tertiary gross enrollment ratios and government funding per tertiary student.
 
 The primary variables are obtained from international education and public-expenditure databases:
 
@@ -308,16 +304,6 @@ fd_model <- lm(enroll_change ~ spend_change + pretrend, data = panel_20_21)
 ```
 
 
-```{r fd-summary, echo=FALSE, message=FALSE, warning=FALSE,tbl.cap="Summary of First-Difference Regression with Pretrend Control."}
-
-fd_tidy <- tidy(fd_model, conf.int = TRUE)
-
-knitr::kable(
-  fd_tidy,
-  digits = 3,
-  caption = "Summary of First-Difference Regression with Pretrend Control"
-)
-```
 
 ## 5.1 Descriptive Patterns
 
@@ -414,11 +400,12 @@ Overall, the findings indicate that **post-COVID spending increases did not prod
 This study finds:
 
 1.  Strong positive earnings gradients across education levels.  
-2.  Substantial earnings heterogeneity across fields of study.  
-3.  Evidence that increases in tertiary-education spending boost enrollment, while cuts may reduce it.
+2.  No evidence of an immediate (short-run) increase in tertiary enrollment following larger post-COVID spending increases; the first-difference association is more consistent with reactive policy responses (reverse causality) than with a causal enrollment effect.
+
 
 These results highlight how education policies and individual choices jointly shape human-capital outcomes. Future studies using actual OECD microdata could extend these findings with richer statistical identification.
 
 # References
 
-(Insert any real citations here.)
+OECD. (2021). *The state of higher education: One year into the COVID-19 pandemic*. OECD Publishing.
+
