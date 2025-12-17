@@ -428,7 +428,7 @@ knitr::kable(
   digits = 3)
 ```
 
-## **5.5 Summary of Findings (Concise Version)**
+## **5.5 Summary of Findings**
 
 Across all empirical strategies—descriptive comparisons, Difference-in-Differences, event-study analysis, and first-difference regression—the evidence shows **no short-run impact of increased tertiary-education spending on enrollment rates** following the COVID-19 shock. High-response countries did not exhibit distinct post-2021 enrollment patterns, and the DiD and event-study coefficients remain small and statistically insignificant. The negative association in the first-difference model is best interpreted as **reverse causality**, reflecting governments’ responses to declining enrollment rather than causal effects of higher spending.
 
