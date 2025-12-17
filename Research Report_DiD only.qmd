@@ -56,7 +56,7 @@ This study investigates two interrelated questions:
 
 # 2. Research Design
 
-To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits observed cross-country variation in post-COVID changes in per-student government spending on tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with larger post-2020 spending adjustments experienced differential post-2020 trajectories in tertiary enrolment relative to countries with smaller adjustments.
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits observed cross-country variation in post-COVID changes in per-student government spending on tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with larger post-2020 spending adjustments experienced differential post-2020 trajectories in tertiary enrollment relative to countries with smaller adjustments.
 
 ## 2.1 Identification Strategy
 
@@ -64,14 +64,14 @@ Two empirical strategies are implemented to capture both discrete and continuous
 
 ### (1) Difference-in-Differences Design
 
-The first strategy classifies countries into **high-response** and **low-response** groups based on whether their 2020–2021 increase in per-student tertiary-education spending exceeds the sample median. The Difference-in-Differences (DiD) framework compares the evolution of tertiary-enrollment rates between these two groups before and after 2021, the first full year following the onset of the pandemic.
+The first strategy classifies countries into **high-response** and **low-response** groups based on whether their 2020–2021 increase in per-student tertiary-education spending exceeds the sample median. The Difference-in-Differences (DiD) framework compares the evolution of tertiary-enrollment rates between these two groups before and after 2021, the first full year after the initial 2020 shock.
 
 This approach follows the logic of policy evaluation designs in which a subset of units experiences a more substantial treatment response than others. The identifying assumption is that, absent differential spending increases, enrollment trends in high- and low-response countries would have followed similar trajectories.
 
 To examine the validity of the identifying assumption and to characterize dynamic patterns, an event-study specification is also estimated. This event-time framework provides a flexible representation of pre- and post-2021 differences and allows visualization of treatment dynamics, including whether any divergence emerges only after 2021.
 
-Importantly, this design does not assume that funding adjustments were mechanically caused by enrollment changes. Instead, it treats the 2020–2021 spending change as a heterogeneous funding-policy response across countries and estimates whether enrolment evolved differently in countries with larger versus smaller adjustments, conditional on fixed effects and pre-trend diagnostics.
-ation of pre- and post-treatment evolution and allows for visualization of treatment timing.
+Importantly, this design does not assume that funding adjustments were mechanically caused by enrollment changes. Instead, it treats the 2020–2021 spending change as a heterogeneous funding-policy response across countries and estimates whether enrollment evolved differently in countries with larger versus smaller adjustments, conditional on fixed effects and pre-trend diagnostics.
+
 
 ### (2) Continuous-Treatment Approach
 
@@ -89,7 +89,8 @@ The empirical analysis uses a multi-country panel dataset containing annual info
 
 In practice, the empirical dataset is constructed from publicly available series accessed via Our World in Data (OWID) Grapher downloads for tertiary gross enrollment ratios and government funding per tertiary student.
 
-The primary variables are obtained from international education and public-expenditure databases:
+The primary variables are constructed from OWID Grapher series that harmonise international education and public-finance statistics:
+
 
 - **Tertiary enrollment ratio**: measured as gross tertiary enrollment (% of relevant age cohort).  
 - **Government tertiary-education spending per student**: expressed as public spending per tertiary student (in constant units).  
@@ -198,7 +199,7 @@ library(tidyverse)
 library(fixest)
 library(broom)
 
-# 1. Load OECD data ---------------------------------------------------
+# 1. Load OECD data 
 enroll_raw <- read.csv(
   "https://ourworldindata.org/grapher/primary-secondary-enrollment-completion-rates.csv?v=1&csvType=full&useColumnShortNames=true"
 )
@@ -214,7 +215,7 @@ oecd_iso3 <- c(
   "SWE","TUR","USA"
 )
 
-# 2. Select variables (year as integer) -------------------------------
+# 2. Select variables
 enroll <- enroll_raw %>%
   transmute(
     entity = Entity,
@@ -233,13 +234,13 @@ spend <- spend_raw %>%
       initial_government_funding_per_tertiary_student__constant_pppdollar__xunit_pppconst_5t8_fsgov_ffntr
   )
 
-# 3. Build panel ------------------------------------------------------
+# 3. Build panel 
 panel_all <- enroll %>%
   inner_join(spend, by = c("entity","code","year")) %>%
   filter(code %in% oecd_iso3, year >= 2010, year <= 2023) %>%
   arrange(code, year)
 
-# --- 3b. Compute pretrend (2010–2019 enrollment slope for each country) -----
+# 3b. Compute pretrend (2010–2019 enrollment slope for each country) 
 
 pretrend_df <- panel_all %>%
   filter(year >= 2010, year <= 2019) %>%   # choose stable pre-COVID window
@@ -250,7 +251,7 @@ pretrend_df <- panel_all %>%
   }) %>%
   ungroup()
 
-# 4. 2020→2021 differences -------------------------------------------
+# 4. 2020→2021 differences 
 
 panel_20_21 <- panel_all %>%
   filter(year %in% c(2020, 2021)) %>%
@@ -274,7 +275,7 @@ panel_20_21 <- panel_20_21 %>%
   ) %>%
   left_join(pretrend_df, by = "code")
 
-# 5. DiD panel with treatment -----------------------------------------
+# 5. DiD panel with treatment 
 panel_did <- panel_all %>%
   left_join(panel_20_21 %>% distinct(code, treated), by = "code") %>%
   filter(!is.na(treated)) %>%
@@ -301,6 +302,8 @@ event_study_model <- feols(
 
 # 8. First-difference model -------------------------------------------
 fd_model <- lm(enroll_change ~ spend_change + pretrend, data = panel_20_21)
+
+
 ```
 
 
@@ -309,28 +312,39 @@ fd_model <- lm(enroll_change ~ spend_change + pretrend, data = panel_20_21)
 
 To motivate the analysis, Figure @fig-trends displays average tertiary-enrollment trajectories for high-response and low-response countries, where high-response countries are those with above-median increases in per-student tertiary-education spending between 2020 and 2021.
 
-Prior to 2021, the two groups follow broadly similar trends, showing no visible pre-existing divergence. After 2021, enrollment levels remain volatile but do not exhibit systematic differences across groups. This descriptive evidence is consistent with the identifying assumption that pre-COVID trends were comparable across high- and low-response countries.
+Prior to 2021, the two groups display broadly similar movements in average enrollment, with no clear and persistent divergence. Around the onset of the pandemic, the gap between groups widens from 2019 to 2020, as the high-response group’s average enrollment increases more. By 2021, both groups rise further, but the difference in raw group means slightly narrows relative to 2020. These descriptive patterns are based on unconditional group averages and do not incorporate uncertainty or compositional differences; the subsequent DiD and event-study estimates formally assess whether post-2021 differential changes are statistically distinguishable from zero once country and year fixed effects are included.
+
 
 ```{r fig-trends, echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Average tertiary enrollment for high-response and low-response OECD countries."}
 
-panel_all %>%
+library(scales)
+
+plot_df <- panel_all %>%
   left_join(panel_20_21 %>% distinct(code, treated), by = "code") %>%
-  filter(!is.na(treated)) %>%  # drop NA treatment to avoid grey line
+  filter(!is.na(treated), year <= 2021) %>%   
   group_by(year, treated) %>%
   summarise(
     avg_enroll = mean(enroll_ratio, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
+  )
+
+plot_df %>%
   ggplot(aes(x = year, y = avg_enroll, color = factor(treated))) +
-  geom_line(size = 1.1) +
-  scale_x_continuous(breaks = 2010:2023, labels = 2010:2023) +
+  geom_line(linewidth = 1.1) +
+  geom_vline(xintercept = 2021, linetype = "dashed") +
+  scale_x_continuous(
+    limits = c(2010, 2021),
+    breaks = seq(2010, 2021, by = 2)
+  ) +
   labs(
     x     = "Year",
     y     = "Average Tertiary Enrollment Ratio",
     color = "High-Response",
-    title = "Enrollment Trends by Spending-Response Group"
+    title = "Enrollment Trends by Spending–Response Group"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 ```
 
 ## 5.2 Difference-in-Differences Estimates
@@ -366,6 +380,7 @@ iplot(
   main = "Event Study: Post-COVID Spending Response"
 )
 ```
+
 
 ## 5.4 Continuous First-Difference Estimates
 
