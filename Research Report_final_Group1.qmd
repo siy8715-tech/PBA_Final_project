@@ -54,7 +54,7 @@ This study investigates two interrelated questions:
 
 # 2. Research Design
 
-To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits cross-country variation in the **2020–2021 change** in per-student government funding for tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with a larger **2020–2021 spending increase** experienced different **post-2021** trajectories in tertiary enrollment relative to countries with smaller 2020–2021 changes.
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits cross-country variation in the **2020–2021 change** in per-student government funding for tertiary education across OECD countries. The correlational analysis describes earnings differences across education levels, while the DiD framework compares whether countries with larger **2020–2021 per-student spending increases** exhibit different **post-2021** enrollment trajectories relative to countries with smaller changes. Given that post-COVID funding adjustments may respond to contemporaneous conditions, the DiD estimates are interpreted as differential changes in enrollment trajectories rather than as a clean causal policy experiment.
 
 
 ## 2.1 Identification Strategy
@@ -69,7 +69,8 @@ This approach follows the logic of policy evaluation designs in which a subset o
 
 To examine the validity of the identifying assumption and to characterize dynamic patterns, an event-study specification is also estimated. This event-time framework provides a flexible representation of pre- and post-2021 differences and allows visualization of treatment dynamics, including whether any divergence emerges only after 2021.
 
-Importantly, this design does not assume that funding adjustments were mechanically caused by enrollment changes. Instead, it treats the 2020–2021 spending change as a heterogeneous funding-policy response across countries and estimates whether enrollment evolved differently in countries with larger versus smaller adjustments, conditional on fixed effects and pre-trend diagnostics.
+Importantly, this design does not require assuming that spending changes are exogenous. Instead, it treats the 2020–2021 spending change as a heterogeneous funding-policy response across countries and examines whether enrollment evolved differently in countries with larger versus smaller adjustments, conditional on fixed effects and pre-trend diagnostics. The results are therefore interpreted as comparative (trajectory) evidence, consistent with the identification caveats discussed in Section 4.3.
+
 
 ### (2) Continuous-Treatment Approach
 
@@ -103,9 +104,12 @@ The analysis focuses on three key variables related to tertiary education outcom
 
 ### Outcome
 
--   **Tertiary Enrollment Ratio**: the gross tertiary enrollment rate serves as the primary dependent variable in both the panel and first-difference models.
+- **Tertiary Enrollment Ratio**: the gross tertiary enrollment rate serves as the primary dependent variable in both the panel and first-difference models.
 
--   **Relative Earnings Index (Tertiary Education)**: measures average earnings of tertiary-educated workers relative to individuals with upper-secondary education and captures labor-market returns to higher education. The relative earnings index is included to contextualize enrollment decisions, as higher expected labor-market returns may moderate the short-run responsiveness of tertiary enrollment to public spending shocks.
+- **Relative Earnings Index (Tertiary, OECD)**: measures average earnings of tertiary-educated workers relative to individuals with upper-secondary education (upper-secondary = reference). This index is used primarily for contextual interpretation of incentives to pursue higher education.
+
+- **Wage Index by Education Level (Primary baseline)**: a pooled wage-index measure reported for four education levels (primary, lower secondary, upper secondary, tertiary). This measure is used in the earnings-gradient regression in Section 4.5/5.5 and is conceptually distinct from the OECD relative earnings index above.
+
 
 ### Treatment
 
@@ -115,20 +119,23 @@ Two alternative treatment definitions are used: a binary treatment for the Diffe
 -   **Post indicator** (`Post_t`): Equals 1 for years ≥ 2021.\
 -   **Interaction** (`Treated_c × Post_t`): Captures differential post-2021 enrollment changes.
 
-### Continuous treatment
+### Continuous treatment (first-difference, 2020→2021)
 
--   **ΔSpending**: Year-to-year change in per-student tertiary spending.\
--   **ΔEnrollment**: Corresponding change in tertiary enrollment.\
--   **Pretrend**: Long-run pre-COVID enrollment trend included as a control.
+- $\Delta Spending_c$: Change in per-student tertiary spending between 2020 and 2021.
+- $\Delta Enrollment_c$: Corresponding change in tertiary enrollment between 2020 and 2021.
+- Pretrend$_c$: Long-run pre-COVID enrollment trend included as a control in the first-difference model.
+
 
 | Variable Name | Description | Source |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Enrollment | Gross enrollment ratio for tertiary education (both sexes) | Our World in Data (OWID) |
 | Spending | Government expenditure per tertiary student (PPP\$) | Our World in Data (OWID) |
 | Earnings | Relative earnings index (Tertiary) | OECD Education at a Glance |
 | Treated | Indicator for countries with high post-COVID spending growth | Calculated from OWID |
+| Wage_Index | Wage index by education level (Primary/Lower/Upper/Tertiary) | OECD wage ladder files (2019–2020 in this dataset) |
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r load-data, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(janitor)
 library(readxl)
@@ -147,7 +154,7 @@ oecd_iso3 <- c(
 )
 
 # ---------------------------------------------------------
-# 2) Enrollment (OWID) — explicit variable
+# 2) Tertiary enrollment (OWID)
 # ---------------------------------------------------------
 enroll_raw <- read.csv(
   "https://ourworldindata.org/grapher/primary-secondary-enrollment-completion-rates.csv?v=1&csvType=full&useColumnShortNames=true"
@@ -162,9 +169,8 @@ enroll <- enroll_raw %>%
   ) %>%
   filter(code %in% oecd_iso3, year >= 2010, year <= 2023)
 
-
 # ---------------------------------------------------------
-# 3) Spending per tertiary student (OWID) — explicit variable
+# 3) Spending per tertiary student (OWID)
 # ---------------------------------------------------------
 spend_raw <- read.csv(
   "https://ourworldindata.org/grapher/education-spending.csv?v=1&csvType=full&useColumnShortNames=true&spending_type=per_student&level=tertiary"
@@ -180,7 +186,7 @@ spend <- spend_raw %>%
   filter(code %in% oecd_iso3, year >= 2010, year <= 2023)
 
 # ---------------------------------------------------------
-# 4) Tertiary attainment (your project files: 2019, 2020, 2023)
+# 4) Tertiary attainment (2019, 2020, 2023)
 # ---------------------------------------------------------
 attain_2019 <- read_csv(
   "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/main/data/tertiary_attainment_2019.csv",
@@ -189,9 +195,9 @@ attain_2019 <- read_csv(
   clean_names() %>%
   rename(country = 1, tertiary_attainment = 2) %>%
   mutate(
-    year = 2019,
     country = as.character(country),
-    tertiary_attainment = as.numeric(tertiary_attainment)
+    tertiary_attainment = as.numeric(tertiary_attainment),
+    year = 2019
   )
 
 attain_2020 <- read_csv(
@@ -201,28 +207,49 @@ attain_2020 <- read_csv(
   clean_names() %>%
   rename(country = 1, tertiary_attainment = 2) %>%
   mutate(
-    year = 2020,
     country = as.character(country),
-    tertiary_attainment = as.numeric(tertiary_attainment)
+    tertiary_attainment = as.numeric(tertiary_attainment),
+    year = 2020
   )
 
 url_attain_2023 <- "https://github.com/siy8715-tech/PBA_Final_project/raw/refs/heads/main/data/attainment_2023.xlsx"
-GET(url_attain_2023, write_disk(tf_attain <- tempfile(fileext = ".xlsx"), overwrite = TRUE))
+
+tf_attain <- tempfile(fileext = ".xlsx")
+
+invisible(
+  suppressMessages(
+    suppressWarnings(
+      httr::GET(
+        url_attain_2023,
+        httr::write_disk(tf_attain, overwrite = TRUE)
+      )
+    )
+  )
+)
 
 attain_2023 <- readxl::read_excel(tf_attain) %>%
-  clean_names() %>%
+  janitor::clean_names() %>%
   rename(country = 1, tertiary_attainment = 2) %>%
   mutate(
-    year = 2023,
+    country = as.character(country),
+    tertiary_attainment = as.numeric(tertiary_attainment),
+    year = 2023
+  )
+attain_2019 <- attain_2019 %>%
+  mutate(
     country = as.character(country),
     tertiary_attainment = as.numeric(tertiary_attainment)
   )
 
-attainment <- bind_rows(attain_2019, attain_2020, attain_2023) %>%
-  filter(country %in% enroll$country) # keep OECD countries consistent by name
+attain_2020 <- attain_2020 %>%
+  mutate(
+    country = as.character(country),
+    tertiary_attainment = as.numeric(tertiary_attainment)
+  )
 
+attainment <- bind_rows(attain_2019, attain_2020, attain_2023)
 # ---------------------------------------------------------
-# 5) Relative earnings (your project files: 2019, 2020, 2023)
+# 5) Relative earnings (2019, 2020, 2023)
 # ---------------------------------------------------------
 earn_2019 <- read_csv(
   "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/main/data/relative_earnings_2019.csv",
@@ -230,11 +257,7 @@ earn_2019 <- read_csv(
 ) %>%
   clean_names() %>%
   rename(country = 1, rel_earnings_tertiary = 2) %>%
-  mutate(
-    year = 2019,
-    country = as.character(country),
-    rel_earnings_tertiary = as.numeric(rel_earnings_tertiary)
-  )
+  mutate(year = 2019)
 
 earn_2020 <- read_csv(
   "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/main/data/relative_earnings_2020.csv",
@@ -242,29 +265,43 @@ earn_2020 <- read_csv(
 ) %>%
   clean_names() %>%
   rename(country = 1, rel_earnings_tertiary = 2) %>%
-  mutate(
-    year = 2020,
-    country = as.character(country),
-    rel_earnings_tertiary = as.numeric(rel_earnings_tertiary)
-  )
+  mutate(year = 2020)
 
 url_earn_2023 <- "https://github.com/siy8715-tech/PBA_Final_project/raw/refs/heads/main/data/RelativeEarnings_Copy.xlsx"
-GET(url_earn_2023, write_disk(tf_earn <- tempfile(fileext = ".xlsx"), overwrite = TRUE))
+tf_earn <- tempfile(fileext = ".xlsx")
+invisible(
+  suppressMessages(
+    suppressWarnings(
+      GET(url_earn_2023, write_disk(tf_earn, overwrite = TRUE))
+    )
+  )
+)
 
 earn_2023 <- readxl::read_excel(tf_earn) %>%
-  clean_names() %>%
+  janitor::clean_names() %>%
   rename(country = 1, rel_earnings_tertiary = 2) %>%
   mutate(
-    year = 2023,
+    country = as.character(country),
+    rel_earnings_tertiary = as.numeric(rel_earnings_tertiary),
+    year = 2023
+  )
+
+earn_2019 <- earn_2019 %>%
+  mutate(
     country = as.character(country),
     rel_earnings_tertiary = as.numeric(rel_earnings_tertiary)
   )
 
-earn <- bind_rows(earn_2019, earn_2020, earn_2023) %>%
-  filter(country %in% enroll$country)
+earn_2020 <- earn_2020 %>%
+  mutate(
+    country = as.character(country),
+    rel_earnings_tertiary = as.numeric(rel_earnings_tertiary)
+  )
 
+
+earn <- bind_rows(earn_2019, earn_2020, earn_2023)
 # ---------------------------------------------------------
-# 6) Summary statistics (each variable uses its own non-missing observations)
+# 6) Summary statistics function
 # ---------------------------------------------------------
 summarize_vec <- function(x) {
   x <- x[!is.na(x)]
@@ -278,6 +315,16 @@ summarize_vec <- function(x) {
   )
 }
 
+# ---------------------------------------------------------
+# 7) Summary statistics table
+# ---------------------------------------------------------
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(httr)
+library(knitr)
+library(kableExtra)
+
 summary_table <- bind_rows(
   summarize_vec(enroll$enrollment) %>% mutate(Variable = "Tertiary Enrollment Rate (%)"),
   summarize_vec(spend$spending) %>% mutate(Variable = "Gov. Spending per Student (PPP$)"),
@@ -287,8 +334,11 @@ summary_table <- bind_rows(
   select(Variable, N, Mean, SD, P25, P50, P75)
 
 summary_table %>%
-  kable(digits = 2, booktabs = TRUE,
-        caption = "Summary Statistics for Key Variables (OECD, 2010–2023 where available)") %>%
+  kable(
+    digits = 2,
+    booktabs = TRUE,
+    caption = "Summary Statistics for Key Variables (OECD, 2010–2023 where available)"
+  ) %>%
   kable_styling(latex_options = c("striped", "hold_position")) %>%
   footnote(
     general = "Enrollment and spending are computed for OECD countries over 2010–2023 using all non-missing observations. Earnings and attainment are available only for selected years (2019, 2020, and 2023 in this dataset), so their sample sizes are smaller.",
@@ -296,13 +346,11 @@ summary_table %>%
     footnote_as_chunk = TRUE,
     threeparttable = TRUE
   )
-
 ```
 
-**Table 2 reports summary statistics for tertiary enrollment, government spending per tertiary student, relative earnings, and tertiary attainment across OECD countries.** The mean gross tertiary enrollment ratio is **74.97%**, reflecting the average participation level observed in the available OECD country-year data. Government funding per tertiary student shows substantial cross-country variation, with a mean of **$16,506.73** and a large dispersion across observations. The relative earnings index for tertiary-educated workers averages **131.35**, indicating that tertiary-educated workers earn, on average, notably more than the baseline comparison group. Finally, tertiary attainment is observed for fewer country-year entries because this dataset includes attainment values only for selected years.
+Table 2 presents summary statistics for the key variables used in the analysis across OECD countries between 2010 and 2023, where data are available. Average tertiary enrollment rates are relatively high, with a mean of approximately **75%**, though substantial cross-country and temporal variation is evident, as reflected in a standard deviation of nearly 20 percentage points. Government spending per tertiary student also exhibits considerable dispersion, with an average of about USD **\$16,500** (PPP-adjusted) and a wide interquartile range, highlighting large differences in public investment levels across OECD education systems.
 
-Sample sizes differ across variables due to differences in data availability across countries and years. In this table, the number of non-missing observations is **456** for enrollment, **362** for spending, **63** for relative earnings, and **32** for tertiary attainment.
-
+The relative earnings index for individuals with tertiary education shows marked heterogeneity, with a mean value of **137**, indicating that tertiary-educated workers earn, on average, substantially more than the reference group. However, the high standard deviation underscores significant variation in the magnitude of this earnings premium across countries and years. Finally, tertiary attainment rates average roughly **36%**, with moderate dispersion, suggesting meaningful differences in the share of the adult population holding a tertiary degree. Overall, these statistics point to substantial heterogeneity in both educational outcomes and economic returns to education across OECD countries, providing important context for the subsequent econometric analysis.
 
 # 4. Methodology {#sec-methodology}
 
@@ -323,20 +371,17 @@ Enrollment_{c,t}
 $$
 
 where:
+- $Enrollment_{c,t}$ is the gross tertiary enrollment rate for country $c$ in year $t$.
+- $Treated_c$ is a binary indicator based on the 2020→2021 change in government funding per tertiary student.
+  Let $\Delta Spending_c = Spending_{c,2021} - Spending_{c,2020}$ (spend_change). Then
+  $Treated_c = 1\{\Delta Spending_c > median(\Delta Spending)\}$,
+  meaning treated countries are those with an above-median increase in per-student tertiary spending between 2020 and 2021
+  (strictly greater than the sample median).
+- $Post_t$ equals 1 for years $t \ge 2021$ and 0 otherwise (post = 1{year >= 2021}), so the post period starts in 2021.
+- $\gamma_c$ are country fixed effects that absorb time-invariant differences across countries.
+- $\delta_t$ are year fixed effects that account for global shocks and common time trends. Standard errors are clustered at the country level.
+- The coefficient $\beta$ captures the differential post-2021 change in tertiary enrollment for high-response countries relative to low-response countries.
 
--   $Enrollment_{ct}$ is the gross tertiary enrollment rate for country $c$ in year $t$.
-
--   $Treated_i$ is a binary indicator based on the 2020→2021 change in government funding per tertiary student. Let $\Delta Spending_i = Spending_{i,2021} - Spending_{i,2020}$ (`spend_change`). Then $$
-    Treated_i = \mathbf{1}\{\Delta Spending_i > \text{median}(\Delta Spending)\},
-    $$ meaning treated countries are those with an above-median increase in per-student tertiary spending between 2020 and 2021 (strictly greater than the sample median).
-
--   $Post_t$ equals 1 for years $t \ge 2021$ and 0 otherwise (`post = 1{year >= 2021}`), so the post period starts in 2021.
-
--   $\gamma_c$ are country fixed effects that absorb time-invariant differences across countries.
-
--   $\delta_t$ are year fixed effects that account for global shocks and common time trends, standard errors are clustered at the country level to allow for arbitrary within-country serial correlation.
-
--   The coefficient $\beta$ captures the differential post-2021 change in tertiary enrollment for high-response countries relative to low-response countries.
 
 ## 4.2 Event-Study Specification
 
@@ -356,7 +401,18 @@ $$
 
 The coefficients $\beta_k$ trace annual differences between treated and control countries relative to the year immediately preceding 2021. This specification enables visualization of whether enrollment trends diverge only after the spending shock.
 
-## 4.3 Continuous First-Difference Model
+### 4.3 Interpretation and identification caveats
+
+Two features of the treatment measure motivate a cautious interpretation of the estimated short-run relationships.
+
+First, the main spending variable is measured on a per-student basis. Because per-student spending mechanically equals total public funding divided by the number of tertiary students, changes in enrollment (or the size of the enrolled population) can affect the per-student measure even when total spending is unchanged. This mechanical link implies that short-run movements in enrollment may partly show up as movements in “spending per student,” complicating causal interpretation.
+
+Second, post-COVID spending adjustments are plausibly policy responses to contemporaneous conditions. In particular, governments may increase per-student funding in response to declining enrollment or broader fiscal and institutional pressures. Consistent with this possibility, the first-difference estimates are interpreted as descriptive evidence and may reflect reactive policy behavior rather than a causal effect of spending on enrollment.
+
+Accordingly, the DiD and event-study specifications are best viewed as testing whether enrollment trajectories differ systematically between countries with larger versus smaller 2020–2021 per-student spending increases, rather than as a clean policy-experiment setting.
+
+
+## 4.4 Continuous First-Difference Model
 
 To assess whether the size of spending adjustments relates to short-run enrollment changes, a first-difference regression is estimated:
 
@@ -371,29 +427,23 @@ $$
 
 This model captures marginal associations across countries and is interpreted descriptively rather than causally, given potential endogeneity in policy responses.
 
-## 4.4 Linear Regression Specification: The Earnings Gradient
+## 4.5 Linear Regression Specification: The Earnings Gradient
 
-To quantify the relationship between educational attainment and relative income, this study analyzes a multiple linear regression model using a categorical approach. This specification treats different levels of education as discrete "steps" on an earnings ladder, identifying the marginal wage premium associated with each successive degree.
+To quantify the relationship between educational attainment and relative income, this study analyzes a multiple linear regression model using a categorical approach. This specification treats different levels of education as discrete "steps" on an earnings ladder, identifying the wage premium associated with each education category relative to the primary-education baseline.
 
 The model is specified as follows:
 
-$$Relative\ Wage_i = \beta_0 + \beta_1(Lower\ Secondary)_i + \beta_2(Upper\ Secondary)_i + \beta_3(Tertiary)_i + \epsilon_i$$
+$\text{Relative Wage}_i = \beta_0 + \beta_1(\text{Lower Secondary})_i+ \beta_2(\text{Upper Secondary})_i + \beta_3(\text{Tertiary})_i + \varepsilon_i.$
 
 -   $\beta_0$ (Intercept): Represents the baseline reference group, **Primary Education**. All other coefficients measure the wage increase relative to this starting point.
-
-<!-- -->
-
 -   $\beta_1$ (Lower Secondary): The coefficient representing the average change in relative wage for individuals who have completed lower secondary education compared to the primary baseline.
-
 -   $\beta_2$ (Upper Secondary): The coefficient representing the wage premium for upper secondary completion.
-
--   $\beta_3$ (Tertiary): The coefficient representing the total **Tertiary Wage Premium**, measuring the cumulative economic return for university-level attainment.
-
+-   $\beta_3$ (Tertiary): The coefficient representing the wage premium associated with completing tertiary education relative to the primary education baseline, capturing the total earnings differential between individuals with tertiary education and those with only primary education..
 -   $\epsilon_i$ (Error Term): Captures the residual variance in wages not explained by the educational levels included in the model.
 
-The primary objective of this specification is to calculate the Correlation **(**$R$) and the Coefficient of Determination **(**$R^2$). These values indicate how much of the global wage disparity can be explained purely by the "type" of education an individual possesses.
+The specification quantifies wage premiums across education levels relative to the baseline, and the overall explanatory power of educational attainment for wage variation. These values indicate how much of the global wage disparity can be explained purely by the "type" of education an individual possesses. While the coefficients are defined relative to the primary baseline, incremental differences between adjacent education levels can be assessed by comparing coefficients (e.g., $\beta_2$ − $\beta_1$ for upper vs lower secondary).
 
-## 4.5 Summary of Empirical Approach
+## 4.6 Summary of Empirical Approach
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
@@ -407,11 +457,11 @@ methodology_data <- data.frame(
     "Earnings Gradient (OLS)"
   ),
   Purpose = c(
-    "Estimate the average treatment effect of high spending on enrollment rates.",
-    "Test parallel trends and observe dynamic enrollment effects over time.",
-    "Analyze the short-run correlation between annual changes in spending and enrollment.",
-    "Quantify the salary premium across four education levels."
-  ),
+  "Estimate the differential post-2021 change in enrollment for high-response vs low-response countries (two-way fixed effects DiD).",
+  "Assess pre-trends and visualize dynamic differences in enrollment around 2021 (event-time coefficients).",
+  "Describe the cross-country association between 2020→2021 changes in spending and enrollment (first-difference).",
+  "Describe the earnings gradient across education levels using a pooled wage index."
+),
   Key_Variables = c(
     "Treated, Post, Enrollment", 
     "Year Dummies, Treated, Enrollment", 
@@ -434,7 +484,7 @@ Together, these models provide a coherent framework for evaluating whether post-
 
 # 5. Results {#sec-results}
 
-This section presents descriptive evidence on changes in tertiary enrollment and government spending, followed by the main empirical results using the Difference-in-Differences and continuous first-difference approaches. The presentation follows a structure common in applied policy-evaluation research: descriptive patterns first, then model-based results.
+This section presents descriptive evidence on changes in tertiary enrollment and government spending, followed by the main empirical results using the Difference-in-Differences and continuous first-difference approaches. The presentation follows a structure common in applied empirical work: descriptive patterns first, then model-based results.
 
 ```{r setup-results, echo=FALSE, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -592,7 +642,7 @@ ggplot(plot_df, aes(x = year, y = avg_enroll, color = treated_lbl)) +
 
 captures the differential change in tertiary-enrollment levels for high-response countries relative to low-response countries after 2021.
 
-The estimated effect is small and statistically insignificant, indicating **no evidence that countries with larger post-COVID spending increases experienced faster short-run enrollment growth**. This finding aligns with the descriptive patterns in Section 5.1.
+The estimated effect is small and statistically insignificant, indicating that post-2021 enrollment changes are not statistically distinguishable between high-response and low-response countries in this specification. Because enrollment decisions are often made with a lag relative to budgetary changes, the estimates presented here should be interpreted as short-run effects rather than long-run impacts of public funding adjustments. This finding aligns with the descriptive patterns in Section 5.1.
 
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
 #| label: tbl-did-model
@@ -612,7 +662,7 @@ To examine dynamic treatment effects and assess the parallel-trends assumption m
 
 Pre-treatment coefficients fluctuate around zero with wide confidence intervals, providing no indication of systematic divergence prior to 2021. Post-treatment coefficients also remain close to zero and statistically indistinguishable from pre-treatment values.
 
-Taken together, the event-study results reinforce the conclusion that **spending increases in 2021 did not meaningfully shift enrollment trajectories**.
+Taken together, the event-study results indicate no statistically distinguishable divergence in enrollment trajectories after 2021 between high-response and low-response countries, within the precision of the estimates.
 
 ```{r fig-event-study, echo=FALSE, message=FALSE, warning=FALSE,fig.cap="Event-study coefficients relative to 2021 (reference year = 2020)."}
 
@@ -651,83 +701,153 @@ knitr::kable(
 
 ## 5.5 The Interaction of Attainment and the Earnings Gradient
 
-To quantify the economic “steps” of the earnings ladder, this study applies a linear regression to pooled 2019–2020 OECD data, treating educational attainment as a set of discrete categories. Primary education is used as the baseline group, allowing each coefficient to be interpreted as the wage premium associated with completing successively higher levels of education
+To quantify the economic “steps” of the earnings ladder, this study applies a linear regression to pooled OECD data from 2019 and 2020, treating educational attainment as a set of discrete categories.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# ----------------------------------------------------
+# 0. Libraries
+# ----------------------------------------------------
 library(tidyverse)
 library(broom)
 library(knitr)
 library(kableExtra)
 
-# 1. PROCESS BOTH YEARS (Selecting 5 columns for Country + 4 Levels)
-process_data <- function(path, attain_df, yr) {
+# ----------------------------------------------------
+# 1. Function to process wage data (2019 & 2020)
+# ----------------------------------------------------
+process_data <- function(path, yr) {
+  
   raw <- read.csv(path, skip = 7, header = FALSE, fileEncoding = "latin1")
-  clean <- raw[, 1:5] 
-  colnames(clean) <- c("country", "Primary", "Lower_Sec", "Upper_Sec", "Tertiary")
+  
+  clean <- raw[, 1:5]
+  colnames(clean) <- c(
+    "country",
+    "Primary",
+    "Lower_Sec",
+    "Upper_Sec",
+    "Tertiary"
+  )
   
   clean %>%
-    mutate(across(c(Primary, Lower_Sec, Upper_Sec, Tertiary), 
-                  ~as.numeric(gsub("[^0-9.]", "", as.character(.))))) %>%
-    inner_join(attain_df, by = "country") %>%
+    mutate(
+      across(
+        c(Primary, Lower_Sec, Upper_Sec, Tertiary),
+        ~ as.numeric(gsub("[^0-9.]", "", as.character(.)))
+      )
+    ) %>%
     mutate(Year = yr)
 }
 
-# Load data
-w19_full <- process_data("https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/88e1bfbe759f94862d27c4301016f519d2a95dbd/data/Wages.2019.csv", attain_2019, 2019)
-w20_full <- process_data("https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/88e1bfbe759f94862d27c4301016f519d2a95dbd/data/Wages.2020.csv", attain_2020, 2020)
+# ----------------------------------------------------
+# 2. Load and combine wage data
+# ----------------------------------------------------
+w19_full <- process_data(
+  "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/88e1bfbe759f94862d27c4301016f519d2a95dbd/data/Wages.2019.csv",
+  2019
+)
 
-full_ladder_data <- bind_rows(w19_full, w20_full) %>%
-  pivot_longer(cols = c(Primary, Lower_Sec, Upper_Sec, Tertiary), 
-               names_to = "Education_Level", 
-               values_to = "Wage_Index") %>%
+w20_full <- process_data(
+  "https://raw.githubusercontent.com/siy8715-tech/PBA_Final_project/88e1bfbe759f94862d27c4301016f519d2a95dbd/data/Wages.2020.csv",
+  2020
+)
+
+full_ladder_data <- bind_rows(w19_full, w20_full)
+
+# ----------------------------------------------------
+# 3. Reshape to long format
+# ----------------------------------------------------
+full_ladder_data <- full_ladder_data %>%
+  pivot_longer(
+    cols = c(Primary, Lower_Sec, Upper_Sec, Tertiary),
+    names_to = "Education_Level",
+    values_to = "Wage_Index"
+  ) %>%
   filter(!is.na(Wage_Index))
 
-full_ladder_data$Education_Level <- factor(full_ladder_data$Education_Level, 
-                                          levels = c("Primary", "Lower_Sec", "Upper_Sec", "Tertiary"))
+# ----------------------------------------------------
+# 4. Define education ladder (CRITICAL)
+# ----------------------------------------------------
+full_ladder_data$Education_Level <- factor(
+  full_ladder_data$Education_Level,
+  levels = c("Primary", "Lower_Sec", "Upper_Sec", "Tertiary"),
+  labels = c(
+    "Primary Education",
+    "Lower Secondary Education",
+    "Upper Secondary Education",
+    "Tertiary Education"
+  )
+)
 
-full_ladder_data$Education_Level <- factor(full_ladder_data$Education_Level, 
-    levels = c("Primary", "Lower Secondary", "Upper Secondary", "Tertiary"))
+full_ladder_data$Education_Level <- relevel(
+  full_ladder_data$Education_Level,
+  ref = "Primary Education"
+)
 
-# Your plotting code
-ggplot(full_ladder_data, aes(x = Education_Level, y = Wage_Index, fill = Education_Level)) +
+# ----------------------------------------------------
+# 5. Visualization
+# ----------------------------------------------------
+ggplot(
+  full_ladder_data,
+  aes(x = Education_Level, y = Wage_Index, fill = Education_Level)
+) +
   geom_boxplot(alpha = 0.7, outlier.color = "red") +
   stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "white") +
   scale_fill_manual(values = c("#c0392b", "#e67e22", "#7f8c8d", "#2980b9")) +
   theme_minimal() +
-  labs(title = "Wages and 4 Education Levels", 
-       x = "Education Level", 
-       y = "Wage Index") +
-  theme(legend.position = "none")
+  labs(
+    title = "Wages and Four Education Levels",
+    x = "Education Level",
+    y = "Wage Index"
+  ) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 20, hjust = 1, size = 10)
+  )
+# ----------------------------------------------------
+# 6. Earnings ladder regression (Table 6)
+# ----------------------------------------------------
+ladder_model <- lm(
+  Wage_Index ~ Education_Level,
+  data = full_ladder_data
+)
 
-
-#LINEAR REGRESSION TABLE
-full_ladder_data$Education_Level <- relevel(full_ladder_data$Education_Level, ref = "Primary")
-ladder_model <- lm(Wage_Index ~ Education_Level, data = full_ladder_data)
-
-#Extract Stats for the title
 model_stats <- glance(ladder_model)
-r_val <- round(sqrt(model_stats$r.squared), 3)
-r2_val <- round(model_stats$r.squared, 3) # Added this to get R-squared
+r_val  <- round(sqrt(model_stats$r.squared), 3)
+r2_val <- round(model_stats$r.squared, 3)
 
 tidy(ladder_model) %>%
-  mutate(term = recode(term, 
-                       "(Intercept)" = "Baseline: Primary Education",
-                       "Education_LevelLower_Sec" = "Lower Secondary Effect",
-                       "Education_LevelUpper_Sec" = "Upper Secondary Effect",
-                       "Education_LevelTertiary" = "Tertiary Degree Premium")) %>%
-  kable(digits = 2, booktabs = TRUE, 
-        # Removed "Table 8:" to prevent double numbering and added R-squared
-        caption = paste("Regression Analysis (R =", r_val, "| R-squared =", r2_val, ")")) %>%
+  mutate(term = recode(
+    term,
+    "(Intercept)" = "Baseline: Primary Education",
+    "Education_LevelLower Secondary Education" = "Lower Secondary Effect",
+    "Education_LevelUpper Secondary Education" = "Upper Secondary Effect",
+    "Education_LevelTertiary Education" = "Tertiary Degree Premium"
+  )) %>%
+  kable(
+    digits = 2,
+    booktabs = TRUE,
+    caption = paste(
+      "Regression Analysis of the Earnings Ladder",
+      "(R =", r_val, "| R-squared =", r2_val, ")"
+    )
+  ) %>%
   kable_styling(latex_options = c("striped", "hold_position"))
+
+
 ```
 
-As shown in Table 6, the results indicate a strong positive relationship between educational attainment and relative earnings. The estimated correlation is high ($R = 0.936$), and the model fit is substantial ($R^2$ = **0.877)**, implying that a large share of the observed variation in wages is associated with differences in education level in this dataset. The coefficients trace a steep and monotonic earnings gradient: moving from one educational “step” to the next is linked to meaningful increases in the wage index.
+Table 6 presents the results of a linear regression estimating an earnings “ladder” across four education levels, using primary education as the baseline category. The results confirm a strong and highly structured relationship between educational attainment and the wage index across OECD observations. The estimated correlation between education level and the wage index is high (R = 0.876), and the model explains a substantial share of variation (R² = 0.768).
 
-Relative to the primary-education baseline, completing lower secondary education is associated with an average increase of 56.37 points in the wage index. The premium rises further at higher attainment levels, and the largest effect is observed for tertiary education. In particular, the estimated tertiary coefficient implies an additional wage premium of 71.79 points relative to the baseline, consistent with the notion that university-level attainment yields the largest economic return among the categories considered. **The pattern support the existence of a clear.**
+Note that this regression uses a pooled wage-index measure with primary education as the reference category, which is distinct from the OECD relative earnings index (tertiary vs upper-secondary) described in Section 3.3.
+
+Descriptively, the point estimates suggest that the incremental gain between lower and upper secondary attainment is limited in this pooled sample. Relative to individuals with primary education, completing lower secondary education is associated with a large and statistically significant increase in the wage index. In contrast, the coefficient on upper secondary education is small and not statistically significant relative to the primary baseline. Importantly, assessing whether upper secondary delivers additional returns beyond lower secondary requires a direct comparison of the two coefficients (i.e., testing $H_0: \beta_{UpperSec} = \beta_{LowerSec}$).
+
+
 
 ## 5.6 Earnings Incentives and Enrollment Responses
 
-The combined evidence from the earnings analysis and the enrollment regressions reveals an important distinction between long-run incentives and short-run behavioral responses. On the one hand, the earnings-gradient analysis documents a large and statistically significant wage premium associated with tertiary education. Relative earnings rise sharply with educational attainment, confirming that higher education continues to offer substantial long-term labor-market returns across OECD countries.
+The combined evidence from the earnings analysis and the enrollment regressions reveals an important distinction between long-run incentives and short-run behavioral responses. On the one hand, the earnings-gradient analysis documents a large and statistically significant wage-index premium associated with tertiary education. The wage index rises sharply with educational attainment, confirming that higher education continues to offer substantial long-term labor-market returns across OECD countries.
 
 On the other hand, the enrollment results indicate that these strong earnings incentives did not translate into an immediate post-COVID increase in tertiary participation, even in countries that implemented larger increases in public spending. This apparent disconnect suggests that short-run enrollment decisions are not driven solely by expected lifetime earnings. Instead, enrollment behavior appears to be influenced by factors such as liquidity constraints, uncertainty about future labor-market conditions, institutional capacity, and cohort-specific dynamics. These findings are consistent with a framework in which the economic returns to education operate over a long horizon, while enrollment decisions respond sluggishly to short-term policy changes. Even when expected earnings premiums remain high, students may delay or forgo enrollment in periods of heightened uncertainty, particularly following large macroeconomic shocks such as the COVID-19 pandemic.
 
@@ -735,7 +855,7 @@ Overall, the results imply that while earnings incentives provide a strong motiv
 
 ## **5.7 Summary of Findings**
 
-Across all empirical strategies—descriptive comparisons, Difference-in-Differences estimation, event-study analysis, and first-difference regression—the evidence shows no short-run impact of increased tertiary-education spending on enrollment rates following the COVID-19 shock. Countries that experienced a larger **2020–2021 increase in government funding per tertiary student** did not exhibit distinct **post-2021** enrollment trajectories relative to countries with smaller 2020–2021 spending increases. Consistent with this, both the DiD interaction estimates and the event-study coefficients remain small and statistically indistinguishable from zero.
+Across descriptive comparisons, Difference-in-Differences estimation, event-study analysis, and the first-difference regression, the results do not provide evidence of a statistically distinguishable short-run increase in tertiary enrollment associated with larger post-COVID increases in per-student public funding. Countries that experienced a larger 2020–2021 increase in government funding per tertiary student did not exhibit clearly different post-2021 enrollment trajectories relative to countries with smaller spending increases. Consistent with this pattern, both the DiD interaction estimate and the event-study coefficients are small and statistically indistinguishable from zero, with confidence intervals that include both modest positive and negative effects.
 
 At the same time, the descriptive earnings analysis highlights a persistent and substantial earnings premium associated with higher educational attainment across OECD countries. Relative earnings rise sharply with education level, indicating strong long-run labor-market incentives for tertiary education even though short-run enrollment responses to public funding changes are muted.
 
