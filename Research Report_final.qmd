@@ -54,7 +54,8 @@ This study investigates two interrelated questions:
 
 # 2. Research Design
 
-To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits observed cross-country variation in post-COVID changes in per-student government spending on tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with larger post-2021 spending adjustments experienced differential post-2021 trajectories in tertiary enrollment relative to countries with smaller adjustments.
+To answer these questions, I combine correlational methods with a Difference-in-Differences (DiD) design that exploits cross-country variation in the **2020–2021 change** in per-student government funding for tertiary education across OECD countries. The correlational analysis is used to describe earnings differences across education levels, while the DiD framework provides a policy-evaluation approach to assess whether countries with a larger **2020–2021 spending increase** experienced different **post-2021** trajectories in tertiary enrollment relative to countries with smaller 2020–2021 changes.
+
 
 ## 2.1 Identification Strategy
 
@@ -110,7 +111,7 @@ The analysis focuses on three key variables related to tertiary education outcom
 
 Two alternative treatment definitions are used: a binary treatment for the Difference-in-Difference analysis and a continuous spending measure for analysis.
 
--   **Binary treatment assignment** (`Treated_c`): Indicator for above-median spending increase.\
+-   **Binary treatment assignment** (`Treated_c`): Indicator for countries with an above-median 2020–2021 increase in per-student tertiary spending.\
 -   **Post indicator** (`Post_t`): Equals 1 for years ≥ 2021.\
 -   **Interaction** (`Treated_c × Post_t`): Captures differential post-2021 enrollment changes.
 
@@ -298,7 +299,10 @@ summary_table %>%
 
 ```
 
-**Table 2 reports summary statistics for tertiary enrollment, government spending per tertiary student, and relative earnings across OECD countries.** The average tertiary enrollment rate stands at 111.33%, which indicates that these nations frequently enroll a larger number of students than their typical college-age cohort, often due to high international student participation and non-traditional age groups. Government investment shows extreme diversity across the sample, with an average spending of \$16,506.73 per student but a very high standard deviation of \$10,753.86, suggesting that funding levels vary drastically from one country to another. The data confirms a strong economic incentive for higher education, as the average relative earnings index for tertiary workers is 137.22, though it reaches as high as 192.00 at the 75th percentile, signifying that these workers can earn nearly double the baseline wage. Finally, it is important to observe the variation in sample sizes across the table; the much larger observation counts for enrollment (N=470) and spending (N=362) compared to the smaller counts for attainment (N=47) and earnings (N=83) directly reflect the specific integration of the 2023 updates for the labor-market variables.
+**Table 2 reports summary statistics for tertiary enrollment, government spending per tertiary student, relative earnings, and tertiary attainment across OECD countries.** The mean gross tertiary enrollment ratio is **74.97%**, reflecting the average participation level observed in the available OECD country-year data. Government funding per tertiary student shows substantial cross-country variation, with a mean of **$16,506.73** and a large dispersion across observations. The relative earnings index for tertiary-educated workers averages **131.35**, indicating that tertiary-educated workers earn, on average, notably more than the baseline comparison group. Finally, tertiary attainment is observed for fewer country-year entries because this dataset includes attainment values only for selected years.
+
+Sample sizes differ across variables due to differences in data availability across countries and years. In this table, the number of non-missing observations is **456** for enrollment, **362** for spending, **63** for relative earnings, and **32** for tertiary attainment.
+
 
 # 4. Methodology {#sec-methodology}
 
@@ -320,7 +324,7 @@ $$
 
 where:
 
--   $Enrollment_{ct}$ is the gross tertiary enrollment rate for country $i$ in year $t$.
+-   $Enrollment_{ct}$ is the gross tertiary enrollment rate for country $c$ in year $t$.
 
 -   $Treated_i$ is a binary indicator based on the 2020→2021 change in government funding per tertiary student. Let $\Delta Spending_i = Spending_{i,2021} - Spending_{i,2020}$ (`spend_change`). Then $$
     Treated_i = \mathbf{1}\{\Delta Spending_i > \text{median}(\Delta Spending)\},
@@ -596,7 +600,7 @@ The estimated effect is small and statistically insignificant, indicating **no e
 
 knitr::kable(
   tidy(did_model, conf.int = TRUE),
-  digits = 3,
+  digits = 5,
   format = "latex",
   booktabs = TRUE
 )
@@ -639,7 +643,7 @@ This interpretation is consistent with the absence of positive effects in the Di
 #| tbl-cap: "Regression of 2021–2020 enrollment changes on spending changes."
 knitr::kable(
   tidy(fd_model, conf.int = TRUE),
-  digits = 3,
+  digits = 5,
   format = "latex",
   booktabs = TRUE
 )
